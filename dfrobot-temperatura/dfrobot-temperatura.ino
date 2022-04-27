@@ -1,40 +1,19 @@
-#include <DFRobot_MLX90614.h>
 #include <Wire.h>
-#include <LCD.h>			// libreria de control del LCD
-#include <LiquidCrystal_I2C.h>		// libreria para LCD por I2C
+#include <IR_Thermometer_Sensor_MLX90614.h>
 
-DFRobot_MLX90614_IIC sensor;   // instantiate an object to drive our sensor
+IR_Thermometer_Sensor_MLX90614 MLX90614 = IR_Thermometer_Sensor_MLX90614();
 
-void setup(){
+void setup() {
   Serial.begin(9600);
-
-  // initialize the sensor
-  while( NO_ERR != sensor.begin() ){
-    Serial.println("Communication with device failed, please check connection");
-    delay(3000);
-  }
-  Serial.println("Begin ok!");
-
-  sensor.enterSleepMode();
-  delay(50);
-  sensor.enterSleepMode(false);
-  delay(200);
-
-  sensor.setEmissivityCorrectionCoefficient(.95);
-  float ambientTemp = sensor.getAmbientTempCelsius();
-  float objectTemp = sensor.getObjectTempCelsius();
-
+  MLX90614.begin();  
 }
 
-void loop(){
-  float ambientTemp = sensor.getAmbientTempCelsius();
-  float objectTemp = sensor.getObjectTempCelsius();
-  
-  Serial.print("Ambiente: ");
-  Serial.println(ambientTemp);
+void loop() {
+  Serial.print("Ambient = "); Serial.print(MLX90614.GetAmbientTemp_Celsius());    Serial.println(" *C");
+  Serial.print("Object  = "); Serial.print(MLX90614.GetObjectTemp_Celsius());     Serial.println(" *C");
+  Serial.print("Ambient = "); Serial.print(MLX90614.GetAmbientTemp_Fahrenheit()); Serial.println(" *F");
+  Serial.print("Object  = "); Serial.print(MLX90614.GetObjectTemp_Fahrenheit());  Serial.println(" *F");
 
-  Serial.print("Objeto: ");
-  Serial.println(objectTemp);
-  
-  delay(1000);
+  Serial.println();
+  delay(500);
 }
