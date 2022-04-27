@@ -20,23 +20,35 @@ void initOximeter() {
 
 void initTemperature() {
     // initialize the sensor
-    while( NO_ERR != sensor_temp.begin() ){
-    Serial.println("Communication with device failed, please check connection");
-    delay(3000);
-    }
-    Serial.println("Temperature Ok!");
+//     while( NO_ERR != sensor_temp.begin() ){
+//     Serial.println("Communication with device failed, please check connection");
+//     delay(3000);
+//     }
+//     Serial.println("Temperature Ok!");
 
-  sensor_temp.enterSleepMode();
-  delay(50);
-  sensor_temp.enterSleepMode(false);
-  delay(200);
+//   sensor_temp.enterSleepMode();
+//   delay(50);
+//   sensor_temp.enterSleepMode(false);
+//   delay(200);
 
-  sensor_temp.setEmissivityCorrectionCoefficient(.95);
-  float ambientTemp = sensor_temp.getAmbientTempCelsius();
-  float objectTemp = sensor_temp.getObjectTempCelsius();
+// //   sensor_temp.setEmissivityCorrectionCoefficient(.95);
+//   float ambientTemp = sensor_temp.getAmbientTempCelsius();
+//   float objectTemp = sensor_temp.getObjectTempCelsius();
+//   delay(1000);
+
 }
 
 void initPulseSensor(){
     // Init HeartPulse sensor
     interruptSetup(); 
+}
+
+void initUltrasonic(){
+    pinMode(trig, OUTPUT);
+    pinMode(echo, INPUT);
+}
+
+void initRelay(){
+    pinMode(relay, OUTPUT);
+    digitalWrite(relay, HIGH);
 }

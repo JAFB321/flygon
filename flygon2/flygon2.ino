@@ -1,10 +1,8 @@
 #include <Wire.h>			// libreria de comunicacion por I2C
 #include <LCD.h>			// libreria de control del LCD
 #include <LiquidCrystal_I2C.h>		// libreria para LCD por I2C
-#include "MAX30100_PulseOximeter.h"
 #include <Keypad.h>
-#include <DFRobot_MLX90614.h>
-
+#include <MAX30100_PulseOximeter.h>
 
 void(* resetFunc) (void) = 0;
 
@@ -16,6 +14,16 @@ volatile int IBI = 600;             // tiempo entre pulsaciones
 volatile boolean Pulse = false;     // Verdadero cuando la onda de pulsos es alta, falso cuando es Baja
 volatile boolean QS = false;        // Verdadero cuando el Arduino Busca un pulso del Corazon
 
+// Antibacterial dispenser config
+int trig = 11;                      // Ultrasonico trig al puerto 11
+int echo = 10;                      // Ultrasonico echo al puerto 10
+int relay = 12;                     // Relay conectado al puerto 12
+int gel_button = 13;
+int distancia_rango[] = {10, 40};   // Rango de distancia para activar el dispensador
+long gel_remaining_time = 0;
+long gel_time = 1; // Tiempo para tomar gel
+bool is_gel_ready = false;
+bool is_gel_throwing = false;
 
 // Oximeter sensor config
 PulseOximeter pox;
@@ -25,8 +33,7 @@ PulseOximeter pox;
 // float IC2heartRate = 0;
 
 // Temp sensor config
-DFRobot_MLX90614_IIC sensor_temp;   // instantiate an object to drive our sensor
-double curentTemperature = 0.0;
+double current_temperature = 0;
 
 // Display config
 LiquidCrystal_I2C lcd (0x27, 2, 1, 0, 4, 5, 6, 7); // DIR, E, RW, RS, D4, D5, D6, D7
@@ -77,9 +84,9 @@ uint8_t ox_values[10];
 int bpm_values[10];
 int bpm2_values[10];
 
-double temp_gap[] = {33.5,36.5};
-uint8_t ox_gap[] = {80,100};
-int bpm_gap[] = {70,111};
+double temp_gap[] = {33.5,39};
+uint8_t ox_gap[] = {87,99};
+int bpm_gap[] = {68,126};
 
 // SUCCESS State
 double ox_sent = -1;
@@ -94,8 +101,9 @@ void setup() {
     Serial.println("Hola mundo!");
     initDisplay();
     initOximeter();
-    initTemperature();
     initPulseSensor();
+    initUltrasonic();
+    initRelay();
 
     randomSeed(analogRead(3));
 
@@ -106,6 +114,8 @@ void loop() {
     // Get sensor values
     keyPressed = keypad.getKey();
 
+    if(keyPressed == 'B') RESET();
+
     pox.update();
 
 
@@ -113,8 +123,36 @@ void loop() {
         QS = false;    // Reset a la bandera del Quantified Self 
     }
 
+  if(isGelButtonPressed()){
+    is_gel_ready = true;
+  }
 
+  if(is_gel_ready && !is_gel_throwing){
+    double distancia = getDistance();
+    
+    if (distancia < 10){
+        is_gel_throwing = true;
+        gel_remaining_time = millis()+gel_time*1000;
+        digitalWrite(relay, LOW);   
+    }
 
+  } else if(is_gel_ready && is_gel_throwing){
+    if (millis() >= gel_remaining_time){    
+      digitalWrite(relay, HIGH);
+      is_gel_ready = false;
+      is_gel_throwing = false;
+    } 
+  }
+
+    // Get temperature from ESP32
+    if(Serial.available() > 0){
+        String data = Serial.readStringUntil('\n');
+        if(data.indexOf("$T=") != -1){
+            current_temperature = data.substring(data.indexOf("$T=")+3).toDouble();
+        }
+    }
+
+    // 
 
     if(STATE == _IDLE){
         onIDLE();
@@ -175,6 +213,7 @@ void onRequestID(){
 
 void initGET_READS(){
       remaining_time = millis()+read_time*1000;
+      current_temperature=0;
       STATE=_GET_READS;
       lcd.clear();
 }
@@ -182,6 +221,10 @@ void initGET_READS(){
 void onGET_READS(){
     lcd.setCursor(0,0);
     lcd.print("Coloca tus dedos");
+    // lcd.print(String("O=") + String(pox.getSpO2()) + String("%"));
+    // lcd.print("T=" + String(current_temperature) + "C");
+    // lcd.print("P=" + String(BPM) + "bpm");
+
     lcd.setCursor(0,1);
     lcd.print(String((remaining_time-millis())/1000)+"s - ");
     // lcd.print(sensor_val_position);
@@ -191,7 +234,7 @@ void onGET_READS(){
         const int pos = sensor_val_position;
         
         if(pos < 9){
-            double temp = sensor_temp.getObjectTempCelsius();
+            double temp = current_temperature+1.5;
             if(temp > temp_gap[0] && temp < temp_gap[1]){
                 temp_values[pos] = temp;
             } else temp_values[pos] = 0;
@@ -217,6 +260,16 @@ void onGET_READS(){
             // ox = 0;
             // temp = 0.0;
             // bpm = 0;
+
+            // Serial.println(String("Temp:  ")+temp);
+            // Serial.println(String("Ox:  ")+ox);
+            // Serial.println(String("BPM:  ")+bpm);
+
+            // lcd.setCursor(0,0);
+            // lcd.rint("Coloca tus dedos");
+            // lcd.print(String("O=") + String(ox));
+            // lcd.print(" T=" + String(temp));
+            // lcd.print(" P=" + String(bpm));
         }
 
 
@@ -544,29 +597,15 @@ uint8_t getMostPopularElement(uint8_t  arr[], const int n)
     return popular;
 }
 
-// double getMostPopularElement(double  arr[], const int n)
-// {
-//     int count = 1, tempCount;
-//     double temp = 0;
-//     int i = 0,j = 0;
-//     //Get first element
-//     double popular = arr[0];
-//     for (i = 0; i < (n- 1); i++)
-//     {
-//         if(arr[i] == 0.0) continue;
+// gel dispenser tools
+double getDistance(){
+  digitalWrite(trig, HIGH);
+  delay(1);
+  digitalWrite(trig, LOW);
+  int tiempo = pulseIn(echo, HIGH);
+  return tiempo / 58.2;
+}
 
-//         temp = arr[i];
-//         tempCount = 0;
-//         for (j = 1; j < n; j++)
-//         {
-//             if (temp == arr[j]  && (double)(arr[j]) != 0)
-//                 tempCount++;
-//         }
-//         if (tempCount > count)
-//         {
-//             popular = temp;
-//             count = tempCount;
-//         }
-//     }
-//     return popular;
-// }
+bool isGelButtonPressed(){
+  return digitalRead(gel_button) == HIGH;
+}
