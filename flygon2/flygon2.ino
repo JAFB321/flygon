@@ -26,7 +26,7 @@ bool is_gel_ready = false;
 bool is_gel_throwing = false;
 
 // Oximeter sensor config
-// PulseOximeter pox;
+PulseOximeter pox;
 
 // uint8_t ox = 0;
 // uint8_t bias = 0;
@@ -36,7 +36,7 @@ bool is_gel_throwing = false;
 double current_temperature = 0;
 
 // Display config
-// LiquidCrystal_I2C lcd (0x27, 2, 1, 0, 4, 5, 6, 7); // DIR, E, RW, RS, D4, D5, D6, D7
+LiquidCrystal_I2C lcd (0x27, 2, 1, 0, 4, 5, 6, 7); // DIR, E, RW, RS, D4, D5, D6, D7
 
 // Keypad config
 const byte rows = 4;
@@ -108,7 +108,6 @@ void setup() {
     randomSeed(analogRead(3));
 
     STATE = _IDLE;
-    initGET_READS();
 }
 
 void loop() {
@@ -182,16 +181,16 @@ void loop() {
 
     if(STATE == _IDLE && keyPressed=='A'){ 
         STATE=_REQUEST_ID;
-        //lcd.clear();
+        lcd.clear();
     }
 
 }
 
 void onIDLE(){
-    //lcd.setCursor(0,0);
-    //lcd.print("Bienvenido");
-    //lcd.setCursor(0,1);
-    //lcd.print("Alumno!");
+    lcd.setCursor(0,0);
+    lcd.print("Bienvenido");
+    lcd.setCursor(0,1);
+    lcd.print("Alumno!");
 }
 
 void onRequestID(){
@@ -199,12 +198,12 @@ void onRequestID(){
         ID += keyPressed;
     }
 
-    //lcd.setCursor(0,0);
-    //lcd.print("Ingresa tu ID");
-    //lcd.setCursor(0,1);
+    lcd.setCursor(0,0);
+    lcd.print("Ingresa tu ID");
+    lcd.setCursor(0,1);
 
     if(ID.length() > 0){
-        //lcd.print(ID);
+        lcd.print(ID);
     }
 
     if(keyPressed && ID.length() > 3 && keyPressed=='A'){
@@ -216,7 +215,7 @@ void initGET_READS(){
       remaining_time = millis()+read_time*1000;
       current_temperature=0;
       STATE=_GET_READS;
-      //lcd.clear();
+      lcd.clear();
 }
 
 void onGET_READS(){
@@ -240,25 +239,23 @@ void onGET_READS(){
                 temp_values[pos] = temp;
             } else temp_values[pos] = 0;
 
-            // uint8_t ox = pox.getSpO2();
-            uint8_t ox = ox_gap[0]+1;
+            uint8_t ox = pox.getSpO2();
             // uint8_t ox = random(90, 100);
             if(ox > ox_gap[0] && ox < ox_gap[1]){
                 ox_values[pos] = ox;
             } else ox_values[pos] = 0;
 
-            // int bpm = round(pox.getHeartRate());
-            int bpm = bpm_gap[0]+1;
+            int bpm = round(pox.getHeartRate());
             if(bpm > bpm_gap[0] && bpm < bpm_gap[1]){
                 bpm_values[pos] = bpm;
             } else bpm_values[pos] = 0;
 
-            // //lcd.setCursor(5, 1);
-            // //lcd.print(ox);
+            // lcd.setCursor(5, 1);
+            // lcd.print(ox);
 
-            // //lcd.print(" _");
-            // //lcd.print(pos);
-            // //lcd.print("   ");
+            // lcd.print(" _");
+            // lcd.print(pos);
+            // lcd.print("   ");
 
             // ox = 0;
             // temp = 0.0;
@@ -291,12 +288,12 @@ void onGET_READS(){
 
 void initSEND_DATA(){
     STATE = _SEND_DATA;
-    //lcd.clear();
+    lcd.clear();
 }
 
 void onSEND_DATA(){
-    //lcd.setCursor(0,0);
-    //lcd.print("Enviando datos...");
+    lcd.setCursor(0,0);
+    lcd.print("Enviando datos...");
 
     uint8_t ox = 0;
     double temp = 0.0;
@@ -356,41 +353,41 @@ void onSEND_DATA(){
 
 
     
-    // //lcd.setCursor(0,0);
-    // //lcd.print(temp_values[0]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[1]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[2]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[3]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[4]);
-    // //lcd.print(" ");
-    // //lcd.setCursor(0,1);
-    // //lcd.print(temp_values[5]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[6]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[7]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[8]);
-    // //lcd.print(" ");
-    // //lcd.print(temp_values[9]);
-    // //lcd.print(" ");
+    // lcd.setCursor(0,0);
+    // lcd.print(temp_values[0]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[1]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[2]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[3]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[4]);
+    // lcd.print(" ");
+    // lcd.setCursor(0,1);
+    // lcd.print(temp_values[5]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[6]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[7]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[8]);
+    // lcd.print(" ");
+    // lcd.print(temp_values[9]);
+    // lcd.print(" ");
 
 }
 
 void initSUCCESS(){
     STATE = _SUCCESS;
-    //lcd.clear();
+    lcd.clear();
 }
 
 void onSUCCESS(){
-    //lcd.setCursor(0,0);
-    //lcd.print("Lectura exitosa");
-    //lcd.setCursor(0,1);
-    //lcd.print("Muchas gracias!");
+    lcd.setCursor(0,0);
+    lcd.print("Lectura exitosa");
+    lcd.setCursor(0,1);
+    lcd.print("Muchas gracias!");
 
     if(keyPressed == 'A'){
         STATE = _RESET;
@@ -399,15 +396,15 @@ void onSUCCESS(){
 }
 
 void initERROR(){
-    //lcd.clear();
+    lcd.clear();
     STATE=_ERROR;
 }
 
 void onERROR(){
-    //lcd.setCursor(0, 0);
-    //lcd.print("Error de lectura");
-    //lcd.setCursor(0, 1);
-    //lcd.print("Vuelva a iniciar");
+    lcd.setCursor(0, 0);
+    lcd.print("Error de lectura");
+    lcd.setCursor(0, 1);
+    lcd.print("Vuelva a iniciar");
 
     if(keyPressed == 'A'){
         STATE = _RESET;
@@ -416,7 +413,7 @@ void onERROR(){
 }
 
 void RESET(){
-    //lcd.clear();
+    lcd.clear();
     for (size_t i = 0; i < 10; i++)
     {
        ox_values[i] = 0;
