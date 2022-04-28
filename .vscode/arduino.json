@@ -1,6 +1,5 @@
 {
-    "sketch": "flygon1.0-esp32\\flygon1.0-esp32.ino",
-    "board": "esp32:esp32:esp32",
-    "port": "COM3",
-    "configuration": "PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,DebugLevel=none"
+    "sketch": "flygon2\\flygon2.ino",
+    "board": "arduino:avr:uno",
+    "port": "COM5"
 }
