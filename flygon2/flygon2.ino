@@ -25,6 +25,8 @@ long gel_time = 1; // Tiempo para tomar gel
 bool is_gel_ready = false;
 bool is_gel_throwing = false;
 
+bool test_sensor_active = false;
+
 // Oximeter sensor config
 PulseOximeter pox;
 
@@ -115,7 +117,7 @@ void loop() {
     keyPressed = keypad.getKey();
 
     if(keyPressed == 'B') RESET();
-
+    if(keyPressed == '#') test_sensor_active = true;
     pox.update();
 
 
@@ -219,8 +221,10 @@ void initGET_READS(){
 }
 
 void onGET_READS(){
-    lcd.setCursor(0,0);
-    lcd.print("Coloca tus dedos");
+    if(!test_sensor_active){
+        lcd.setCursor(0,0);
+        lcd.print("Coloca tus dedos");
+    }
     // lcd.print(String("O=") + String(pox.getSpO2()) + String("%"));
     // lcd.print("T=" + String(current_temperature) + "C");
     // lcd.print("P=" + String(BPM) + "bpm");
@@ -234,19 +238,19 @@ void onGET_READS(){
         const int pos = sensor_val_position;
         
         if(pos < 9){
-            double temp = current_temperature+1.5;
-            if(temp > temp_gap[0] && temp < temp_gap[1]){
+            double temp = current_temperature+2.2;
+            if(temp >= temp_gap[0] && temp <= temp_gap[1]){
                 temp_values[pos] = temp;
             } else temp_values[pos] = 0;
 
             uint8_t ox = pox.getSpO2();
             // uint8_t ox = random(90, 100);
-            if(ox > ox_gap[0] && ox < ox_gap[1]){
+            if(ox >= ox_gap[0] && ox <= ox_gap[1]){
                 ox_values[pos] = ox;
             } else ox_values[pos] = 0;
 
             int bpm = round(pox.getHeartRate());
-            if(bpm > bpm_gap[0] && bpm < bpm_gap[1]){
+            if(bpm >= bpm_gap[0] && bpm <= bpm_gap[1]){
                 bpm_values[pos] = bpm;
             } else bpm_values[pos] = 0;
 
@@ -265,11 +269,14 @@ void onGET_READS(){
             // Serial.println(String("Ox:  ")+ox);
             // Serial.println(String("BPM:  ")+bpm);
 
-            // lcd.setCursor(0,0);
-            // lcd.rint("Coloca tus dedos");
-            // lcd.print(String("O=") + String(ox));
-            // lcd.print(" T=" + String(temp));
-            // lcd.print(" P=" + String(bpm));
+            if(test_sensor_active){
+                lcd.setCursor(0,0);
+                //lcd.print("Coloca tus dedos");
+                lcd.print(String("O=") + String(ox));
+                lcd.print("T=" + String(temp));
+                lcd.print("P=" + String(bpm));
+                lcd.print("  ");
+            }
         }
 
 
@@ -302,7 +309,7 @@ void onSEND_DATA(){
     for (size_t i = 0; i < 10; i++)
     {
         // if(ox_values[i] != 0 && ox == 0) ox = ox_values[i];
-        if(temp_values[i] != 0 && temp == 0.0) temp = temp_values[i];
+        if(temp_values[i] != 0) temp = temp_values[i];
         // if(bpm_values[i] != 0 && bpm == 0) bpm = bpm_values[i];
     }
 
@@ -318,21 +325,19 @@ void onSEND_DATA(){
     if(ox == 0) ox = get_non0Value(ox_values);
     if(bpm == 0) bpm = get_non0Value(bpm_values);
 
-    if(ox_0values == 0 && temp_0values == 0 && bpm_0values == 0){
+    if(ox_0values == 10 || temp_0values == 10 || bpm_0values == 0){
+        initERROR();
+    }
+    else if(ox == 0 || temp == 0.0 || bpm == 0){
+        initERROR();
+    }
+    else if(ox == -1 || temp == -1.0 || bpm == -1){
         initERROR();
     }
     else {
-        if(ox_0values > 0 && (int)ox != 0){
-            ox_sent = ox;
-        }/*else ox_sent = random(93,97);*/
-
-        if(temp_0values > 0){
-            temp_sent = temp;
-        }/*else temp_sent = random(temp_gap[0], temp_gap[1]) + ((double)(random(10,90))/100.0);*/
-
-        if(bpm_0values > 0 && bpm != 0){
-            bpm_sent = bpm;
-        }/*else bpm_sent = random(bpm_gap[0], bpm_gap[1]);*/
+        ox_sent = ox;
+        temp_sent = temp;
+        bpm_sent = bpm;
 
         String data = "$ID=";
         data += String(ID);
